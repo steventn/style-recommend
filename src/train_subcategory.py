@@ -194,7 +194,7 @@ def train_model(classes, train_data_loader, val_data_loader, device, root):
             if val_loss_to_track < (best_loss + threshold):
                 os.makedirs(save_dir, exist_ok=True)
                 best_loss = val_loss_to_track
-                torch.save(model.state_dict(), f"{save_dir}/{save_prefix}_best_model.pth")
+                torch.save(model.state_dict(), f"{save_dir}/{save_prefix}_best_model_test_sub.pth")
             else:
                 not_improved += 1
                 print(f"Loss value did not decrease for {not_improved} epochs")
@@ -296,4 +296,4 @@ def predict_image():
 
 
 if __name__ == "__main__":
-    predict_image()
+    main()

@@ -24,11 +24,9 @@ class CustomDataset(Dataset):
         ids = list(data["id"])
         label = list(data["baseColour"])
 
-        self.ids, self.label = [], []
-        self.cls_names, self.cls_counts, count, data_count = {}, {}, 0, 0
-        for idx, (id, class_name) in enumerate(zip(ids, label)):
-            self.ids.append(id)
-            self.label.append(class_name)
+        self.ids, self.label = ids, label
+        self.cls_names, self.cls_counts, count = {}, {}, 0
+        for class_name in label:
             if class_name not in self.cls_names:
                 self.cls_names[class_name] = count
                 self.cls_counts[class_name] = 1
@@ -40,10 +38,18 @@ class CustomDataset(Dataset):
         return len(self.img_paths)
 
     def __getitem__(self, idx):
-        img = Image.open(os.path.join(self.root, "e-commerce", "images", f"{self.ids[idx]}.jpg")).convert("RGB")
+        img_path = os.path.join(self.root, "e-commerce", "images", f"{self.ids[idx]}.jpg")
+
+        # Check if the image file exists
+        if not os.path.exists(img_path):
+            print(f"Image not found: {img_path}")
+            return None  # or handle the missing image in an appropriate way
+
+        img = Image.open(img_path).convert("RGB")
         true_label = self.cls_names[self.label[idx]]
 
-        if self.transformations is not None: img = self.transformations(img)
+        if self.transformations is not None:
+            img = self.transformations(img)
 
         return img, true_label
 
@@ -194,7 +200,7 @@ def train_model(classes, train_data_loader, val_data_loader, device, root):
             if val_loss_to_track < (best_loss + threshold):
                 os.makedirs(save_dir, exist_ok=True)
                 best_loss = val_loss_to_track
-                torch.save(model.state_dict(), f"{save_dir}/{save_prefix}_best_model_color.pth")
+                torch.save(model.state_dict(), f"{save_dir}/{save_prefix}_best_model_test_sub.pth")
             else:
                 not_improved += 1
                 print(f"Loss value did not decrease for {not_improved} epochs")
@@ -228,5 +234,72 @@ def main():
     train_model(classes, train_data_loader, val_data_loader, device, root)
 
 
+def predict_image():
+    curr_dir = os.path.dirname(os.path.realpath(__file__))
+    root = os.path.abspath(os.path.join(curr_dir, ".."))
+    data_dir = os.path.join(root, "data")
+    device = "cpu"
+    mean, std, im_size = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225], 224
+    transformations = T.Compose([T.Resize((im_size, im_size)), T.ToTensor(), T.Normalize(mean=mean, std=std)])
+
+    # Load the class names
+    _, _, _, classes = create_data_loaders(root=os.path.join(data_dir),
+                                           transformations=transformations,
+                                           batch_size=32)
+
+    # Load the trained model
+    model = timm.create_model("rexnet_150", pretrained=False, num_classes=len(classes))
+
+    # Specify the path to the trained model file
+    model_path = os.path.join(root, "models", "ecommerce_best_model_color.pth")
+
+    # Load the trained weights
+    model.load_state_dict(torch.load(model_path, map_location=device))
+
+    # Move the model to the device (GPU or CPU)
+    model = model.to(device)
+
+    # Set the model to evaluation mode
+    model.eval()
+
+    # Define the data preprocessing transformation
+    mean, std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
+    transform = T.Compose([
+        T.Resize((224, 224)),
+        T.ToTensor(),
+        T.Normalize(mean=mean, std=std),
+    ])
+
+    # Specify the path to the new image for inference
+    new_image_path = os.path.join(root, "input", "women-cargo-pants.jpg")
+
+    # Load and preprocess the new image
+    new_image = Image.open(new_image_path).convert("RGB")
+    input_data = transform(new_image).unsqueeze(0).to(device)
+
+    # Perform inference
+    with torch.no_grad():
+        # Forward pass
+        predictions = model(input_data)
+
+    # Post-process the predictions as needed
+    # Here, we assume that the model outputs class probabilities
+    probs = torch.nn.functional.softmax(predictions, dim=1)
+
+    # Get the predicted class index
+    predicted_class_index = torch.argmax(probs, dim=1).item()
+
+    # Map the class index to the original class name
+    predicted_class_name = list(classes.keys())[predicted_class_index]
+
+    print(f"Predicted Class: {predicted_class_name}")
+
+    # Visualize the input image
+    plt.imshow(np.array(new_image))
+    plt.title(f"Predicted Class: {predicted_class_name}")
+    plt.axis('off')
+    plt.show()
+
+
 if __name__ == "__main__":
-    main()
+    predict_image()
