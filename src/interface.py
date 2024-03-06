@@ -1,32 +1,70 @@
+import os
+
+import numpy as np
+import timm
 import torch
-from torchvision import transforms
+from matplotlib import pyplot as plt
+from torchvision import transforms as T
 from PIL import Image
 
-from src.train import CustomModel, num_classes, labels_df
-
-# Load the trained model
-model = CustomModel(num_classes)
-model.load_state_dict(torch.load('models/your_model.pth'))
-model.eval()
+from src.dataset_handler import DatasetHandler
 
 
-# Preprocess an image for inference
-def preprocess_image(image_path):
-    transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-    ])
-    image = Image.open(image_path)
-    input_tensor = transform(image).unsqueeze(0)
-    return input_tensor
+def run():
+    # Set up paths and directories
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
+    data_dir = os.path.join(base_dir, "data")
+    model_path = os.path.join(base_dir, "models")
+
+    # Set up device and transformations
+    device, im_size = "cpu", 224
+    transformations = T.Compose([T.Resize((im_size, im_size)), T.ToTensor(), T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+
+    # Load class names and the models
+    _, _, _, color_classes = DatasetHandler.create_data_loaders(root=data_dir, transformations=transformations, batch_size=32)
+    _, _, _, category_classes = DatasetHandler.create_data_loaders(root=data_dir, transformations=transformations, batch_size=32)
+
+    color_model_path = os.path.join(model_path, 'ecommerce_best_model_color.pth')
+    category_model_path = os.path.join(model_path, 'ecommerce_best_model_subcategory.pth')
+
+    color_model = timm.create_model("rexnet_150", pretrained=False, num_classes=len(color_classes))
+    color_model.load_state_dict(torch.load(color_model_path, map_location=device))
+    color_model.to(device).eval()
+
+    category_model = timm.create_model("rexnet_150", pretrained=False, num_classes=len(category_classes))
+    category_model.load_state_dict(torch.load(category_model_path, map_location=device))
+    category_model.to(device).eval()
+
+    # Load and preprocess the new image
+    new_image_path = os.path.join(base_dir, "input", "women-cargo-pants.jpg")
+    new_image = Image.open(new_image_path).convert("RGB")
+    input_data = transformations(new_image).unsqueeze(0).to(device)
+
+    # Perform inference for color prediction
+    with torch.no_grad():
+        color_predictions = color_model(input_data)
+
+    color_probs = torch.nn.functional.softmax(color_predictions, dim=1)
+    predicted_color_index = torch.argmax(color_probs, dim=1).item()
+    predicted_color_name = list(color_classes.keys())[predicted_color_index]
+
+    # Perform inference for category prediction
+    with torch.no_grad():
+        category_predictions = category_model(input_data)
+
+    category_probs = torch.nn.functional.softmax(category_predictions, dim=1)
+    predicted_category_index = torch.argmax(category_probs, dim=1).item()
+    predicted_category_name = list(category_classes.keys())[predicted_category_index]
+
+    # Display results
+    print(f"Predicted Color: {predicted_color_name}")
+    print(f"Predicted Category: {predicted_category_name}")
+
+    plt.imshow(np.array(new_image))
+    plt.title(f"Predicted Color: {predicted_color_name}\nPredicted Category: {predicted_category_name}")
+    plt.axis('off')
+    plt.show()
 
 
-# Make a prediction
-image_path = 'path/to/your/image.jpg'
-input_tensor = preprocess_image(image_path)
-with torch.no_grad():
-    output = model(input_tensor)
-    predicted_class = torch.argmax(output).item()
-
-# Print the predicted class
-print(f"Predicted class: {predicted_class}, Class name: {labels_df['article_type'].unique()[predicted_class]}")
+if __name__ == "__main__":
+    run()

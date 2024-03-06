@@ -22,11 +22,13 @@ class CustomDataset(Dataset):
         data_path = os.path.join(root, "styles.csv")
         data = pd.read_csv(data_path)
         ids = list(data["id"])
-        label = list(data["baseColour"])
+        label = list(data["subCategory"])
 
         self.ids, self.label = ids, label
         self.cls_names, self.cls_counts, count = {}, {}, 0
-        for class_name in label:
+        for idx, (id, class_name) in enumerate(zip(ids, label)):
+            self.ids.append(id)
+            self.label.append(class_name)
             if class_name not in self.cls_names:
                 self.cls_names[class_name] = count
                 self.cls_counts[class_name] = 1
@@ -251,7 +253,7 @@ def predict_image():
     model = timm.create_model("rexnet_150", pretrained=False, num_classes=len(classes))
 
     # Specify the path to the trained model file
-    model_path = os.path.join(root, "models", "ecommerce_best_model_color.pth")
+    model_path = os.path.join(root, "models", "ecommerce_best_model_subcategory.pth")
 
     # Load the trained weights
     model.load_state_dict(torch.load(model_path, map_location=device))
