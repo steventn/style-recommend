@@ -1,26 +1,48 @@
 <template>
-  <img alt="Vue logo" src="./assets/logo.png">
-  <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <div id="app">
+    <input type="file" @change="handleFileUpload" accept="image/*">
+    <div v-if="colorRecommendation">
+      <p>Color: {{ colorRecommendation.color }}</p>
+      <p>Complementary Color: {{ colorRecommendation.complementary_color }}</p>
+    </div>
+  </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import axios from 'axios';
 
 export default {
-  name: 'App',
-  components: {
-    HelloWorld
-  }
-}
+  data() {
+    return {
+      colorRecommendation: null,
+    };
+  },
+  methods: {
+    async handleFileUpload(event) {
+      const file = event.target.files[0];
+
+      // Convert the file to base64
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64Image = reader.result.split(',')[1];
+
+        // Send the base64 image to the backend
+        const response = await axios.post('http://localhost:5000/get_color_recommendation', {
+          image_path: base64Image,
+        });
+
+        this.colorRecommendation = response.data;
+      };
+
+      reader.readAsDataURL(file);
+    },
+  },
+};
 </script>
 
 <style>
 #app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  color: #2c3e50;
   margin-top: 60px;
 }
 </style>
