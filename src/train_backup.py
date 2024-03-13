@@ -22,10 +22,10 @@ class CustomDataset(Dataset):
         data_path = os.path.join(root, "styles.csv")
         data = pd.read_csv(data_path)
         ids = list(data["id"])
-        label = list(data["subCategory"])
+        label = list(data["baseColour"])
 
-        self.ids, self.label = ids, label
-        self.cls_names, self.cls_counts, count = {}, {}, 0
+        self.ids, self.label = [], []
+        self.cls_names, self.cls_counts, count, data_count = {}, {}, 0, 0
         for idx, (id, class_name) in enumerate(zip(ids, label)):
             self.ids.append(id)
             self.label.append(class_name)
@@ -40,23 +40,15 @@ class CustomDataset(Dataset):
         return len(self.img_paths)
 
     def __getitem__(self, idx):
-        img_path = os.path.join(self.root, "e-commerce", "images", f"{self.ids[idx]}.jpg")
-
-        # Check if the image file exists
-        if not os.path.exists(img_path):
-            print(f"Image not found: {img_path}")
-            return None  # or handle the missing image in an appropriate way
-
-        img = Image.open(img_path).convert("RGB")
+        img = Image.open(os.path.join(self.root, "e-commerce", "images", f"{self.ids[idx]}.jpg")).convert("RGB")
         true_label = self.cls_names[self.label[idx]]
 
-        if self.transformations is not None:
-            img = self.transformations(img)
+        if self.transformations is not None: img = self.transformations(img)
 
         return img, true_label
 
 
-def create_data_loaders(root, transformations, batch_size, split_ratio=[0.9, 0.05, 0.05], num_workers=4):
+def create_data_loaders(root, transformations, batch_size, split_ratio=[0.9, 0.05, 0.05], num_workers=10):
     dataset = CustomDataset(root=root, transformations=transformations)
 
     # Calculate dataset lengths for train, validation, and test sets
@@ -202,7 +194,7 @@ def train_model(classes, train_data_loader, val_data_loader, device, root):
             if val_loss_to_track < (best_loss + threshold):
                 os.makedirs(save_dir, exist_ok=True)
                 best_loss = val_loss_to_track
-                torch.save(model.state_dict(), f"{save_dir}/{save_prefix}_best_model_test_sub.pth")
+                torch.save(model.state_dict(), f"{save_dir}/{save_prefix}_best_model_subcat1.pth")
             else:
                 not_improved += 1
                 print(f"Loss value did not decrease for {not_improved} epochs")
@@ -253,7 +245,7 @@ def predict_image():
     model = timm.create_model("rexnet_150", pretrained=False, num_classes=len(classes))
 
     # Specify the path to the trained model file
-    model_path = os.path.join(root, "models", "ecommerce_best_model_subcategory.pth")
+    model_path = os.path.join(root, "models", "ecommerce_best_model_color1.pth")
 
     # Load the trained weights
     model.load_state_dict(torch.load(model_path, map_location=device))
@@ -304,4 +296,5 @@ def predict_image():
 
 
 if __name__ == "__main__":
-    predict_image()
+    main()
+    # predict_image()

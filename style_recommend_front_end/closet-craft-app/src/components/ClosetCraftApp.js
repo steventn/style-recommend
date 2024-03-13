@@ -10,36 +10,45 @@ const ClosetCraftApp = () => {
 
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
-
+  
     if (file) {
       const formData = new FormData();
-      formData.append('image', file);
-
+      formData.append('file', file); // Correct key is 'file'
+  
       try {
-        const response = await axios.post('YOUR_UPLOAD_ENDPOINT', formData);
+        const response = await axios.post(`${API_BASE_URL}/get_recommendation`, formData);
+        console.log(response)
 
-        if (response.data && response.data.recommendation) {
-          setOutfitRecommendation(response.data.recommendation);
+        if (response.data && response.data.category) {
+          setOutfitRecommendation(response.data.category);
         }
-
+  
         setSelectedImage(URL.createObjectURL(file));
       } catch (error) {
         console.error('Error uploading image:', error);
       }
+    } else {
+      console.error('No file selected');
     }
   };
+  
 
   useEffect(() => {
-    // Fetch data from the Flask backend
-    fetch(`${API_BASE_URL}/profile`)
-      .then(response => response.json())
-      .then(result => setData(result))
-      .catch(error => console.error("Error fetching data:", error));
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/profile`);
+        setData(response.data);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
   }, []);
 
   return (
     <div>
-      <h1>ClosetCraft - Outfit Recommender</h1>
+      <h1>ClosetCraft - Clothing Identifier and Color Recommender</h1>
       <div>
         <h1>Data from Flask Backend:</h1>
         {data && <p>{data.message}</p>}

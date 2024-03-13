@@ -1,39 +1,51 @@
+import os
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+
+from src.interface import get_recommendations
 
 app = Flask(__name__)
 CORS(app)
 
 
-class ColorRecommendation:
-    def get_color_recommendation(self, image_path):
-        # Add your image processing logic here
-        # Return the color and complementary color
-        color = "example_color"
-        complementary_color = "example_complementary_color"
-        return color, complementary_color
-
-
-# @app.route('/get_color_recommendation', methods=['POST'])
-# def get_color_recommendation():
-#     image_path = request.json.get('image_path')
-#
-#     recommendation = ColorRecommendation().get_color_recommendation(image_path)
-#
-#     return jsonify({
-#         'color': recommendation[0],
-#         'complementary_color': recommendation[1]
-#     })
-
-
-@app.route('/profile')
+@app.route('/profile', methods=['GET'])
 def my_profile():
     data = {
         "name": "Steven",
-        "message" :"Hello! I'm a full stack developer that loves python and javascript Test"
+        "message": "Hello! I'm a full stack developer that loves python and javascript Test"
     }
 
     return jsonify(data)
+
+
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    current_directory = os.path.dirname(__file__)
+
+    if 'file' not in request.files:
+        return 'No file part', 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return 'No selected file', 400
+
+    # You can save the file to disk or process it further as per your requirements
+    print(os.path.join(current_directory, 'uploads', file.filename))
+    file.save(os.path.join(current_directory, 'uploads', file.filename))
+    return 'File uploaded successfully', 200
+
+
+@app.route('/get_recommendation', methods=['POST'])
+def get_recommendation():
+    image = request.files['file']
+    recommendation = get_recommendations(image)
+    response = {
+        'category': recommendation['predicted_category'],
+        'color': recommendation['predicted_color']
+    }
+    print(response)
+    return jsonify(response)
 
 
 if __name__ == '__main__':
