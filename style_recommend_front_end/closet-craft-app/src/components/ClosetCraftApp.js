@@ -5,7 +5,7 @@ import API_BASE_URL from "../config";
 
 const ClosetCraftApp = () => {
   const [selectedImage, setSelectedImage] = useState(null);
-  const [outfitRecommendation, setOutfitRecommendation] = useState('');
+  const [outfitRecommendation, setOutfitRecommendation] = useState({ category: '', color: '' });
   const [data, setData] = useState('');
 
   const handleImageUpload = async (event) => {
@@ -13,14 +13,14 @@ const ClosetCraftApp = () => {
   
     if (file) {
       const formData = new FormData();
-      formData.append('file', file); // Correct key is 'file'
+      formData.append('file', file); 
   
       try {
         const response = await axios.post(`${API_BASE_URL}/get_recommendation`, formData);
         console.log(response)
 
         if (response.data && response.data.category) {
-          setOutfitRecommendation(response.data.category);
+          setOutfitRecommendation({ category: response.data.category, color: response.data.color });
         }
   
         setSelectedImage(URL.createObjectURL(file));
@@ -60,10 +60,11 @@ const ClosetCraftApp = () => {
           <img src={selectedImage} alt="Uploaded Outfit" style={{ maxWidth: '100%' }} />
         </div>
       )}
-      {outfitRecommendation && (
+      {outfitRecommendation.category && (
         <div>
           <h2>Outfit Recommendation:</h2>
-          <p>{outfitRecommendation}</p>
+          <p>Category: {outfitRecommendation.category}</p>
+          <p>Color: {outfitRecommendation.color}</p>
         </div>
       )}
     </div>

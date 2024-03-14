@@ -8,8 +8,8 @@ from src.custom_dataset import CustomDataset
 
 class DatasetHandler:
     @staticmethod
-    def create_data_loaders(root, transformations, batch_size, split_ratio=[0.9, 0.05, 0.05], num_workers=4):
-        dataset = CustomDataset(root=root, transformations=transformations)
+    def create_data_loaders(root, label_name, transformations, batch_size, split_ratio=[0.9, 0.05, 0.05], num_workers=4):
+        dataset = CustomDataset(root=root, label_name=label_name, transformations=transformations)
 
         # Calculate dataset lengths for train, validation, and test sets
         total_len = len(dataset)

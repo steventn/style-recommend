@@ -7,14 +7,14 @@ from PIL import Image
 
 class CustomDataset(Dataset):
 
-    def __init__(self, root, transformations=None):
+    def __init__(self, root, label_name, transformations=None):
         self.transformations, self.root = transformations, root
         all_img_paths = os.path.join(root, "e-commerce", "images", "*")
         self.img_paths = sorted(glob(all_img_paths))
         data_path = os.path.join(root, "styles.csv")
         data = pd.read_csv(data_path)
         ids = list(data["id"])
-        label = list(data["subCategory"])
+        label = list(data[f"{label_name}"])
 
         self.ids, self.label = [], []
         self.cls_names, self.cls_counts, count, data_count = {}, {}, 0, 0
