@@ -15,14 +15,14 @@ torch.manual_seed(2024)
 
 class CustomDataset(Dataset):
 
-    def __init__(self, root, transformations=None):
+    def __init__(self, root, label_name, transformations=None):
         self.transformations, self.root = transformations, root
         all_img_paths = os.path.join(root, "e-commerce", "images", "*")
         self.img_paths = sorted(glob(all_img_paths))
         data_path = os.path.join(root, "styles.csv")
         data = pd.read_csv(data_path)
         ids = list(data["id"])
-        label = list(data["baseColour"])
+        label = list(data[f"{label_name}"])
 
         self.ids, self.label = [], []
         self.cls_names, self.cls_counts, count, data_count = {}, {}, 0, 0
@@ -48,8 +48,8 @@ class CustomDataset(Dataset):
         return img, true_label
 
 
-def create_data_loaders(root, transformations, batch_size, split_ratio=[0.9, 0.05, 0.05], num_workers=10):
-    dataset = CustomDataset(root=root, transformations=transformations)
+def create_data_loaders(root, label_name, transformations, batch_size, split_ratio=[0.9, 0.05, 0.05], num_workers=10):
+    dataset = CustomDataset(root=root, label_name=label_name, transformations=transformations)
 
     # Calculate dataset lengths for train, validation, and test sets
     total_len = len(dataset)
@@ -212,9 +212,10 @@ def main():
     mean, std, im_size = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225], 224
     transformations = T.Compose([T.Resize((im_size, im_size)), T.ToTensor(), T.Normalize(mean=mean, std=std)])
 
-    train_data_loader, val_data_loader, test_data_loader, classes = create_data_loaders(root=os.path.join(data_dir),
-                                                                                        transformations=transformations,
-                                                                                        batch_size=32)
+    train_data_loader, val_data_loader, test_data_loader, classes = create_data_loaders_subcategory(
+        root=os.path.join(data_dir),
+        transformations=transformations,
+        batch_size=32)
 
     print(f"Train DataLoader length: {len(train_data_loader)}")
     print(f"Validation DataLoader length: {len(val_data_loader)}")
@@ -237,24 +238,32 @@ def predict_image():
     transformations = T.Compose([T.Resize((im_size, im_size)), T.ToTensor(), T.Normalize(mean=mean, std=std)])
 
     # Load the class names
-    _, _, _, classes = create_data_loaders(root=os.path.join(data_dir),
-                                           transformations=transformations,
-                                           batch_size=32)
+    _, _, _, sub_cat_classes = create_data_loaders(root=os.path.join(data_dir), label_name="subCategory",
+                                                   transformations=transformations,
+                                                   batch_size=32)
+    _, _, _, sub_color_classes = create_data_loaders(root=os.path.join(data_dir), label_name="baseColour",
+                                                     transformations=transformations,
+                                                     batch_size=32)
 
     # Load the trained model
-    model = timm.create_model("rexnet_150", pretrained=False, num_classes=len(classes))
+    cat_model = timm.create_model("rexnet_150", pretrained=False, num_classes=len(sub_cat_classes))
+    color_model = timm.create_model("rexnet_150", pretrained=False, num_classes=len(sub_color_classes))
 
     # Specify the path to the trained model file
-    model_path = os.path.join(root, "models", "ecommerce_best_model_color1.pth")
+    cat_model_path = os.path.join(root, "models", "ecommerce_best_model_subcat1.pth")
+    color_model_path = os.path.join(root, "models", "ecommerce_best_model_color.pth")
 
     # Load the trained weights
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    cat_model.load_state_dict(torch.load(cat_model_path, map_location=device))
+    color_model.load_state_dict(torch.load(color_model_path, map_location=device))
 
     # Move the model to the device (GPU or CPU)
-    model = model.to(device)
+    cat_model = cat_model.to(device)
+    color_model = color_model.to(device)
 
     # Set the model to evaluation mode
-    model.eval()
+    cat_model.eval()
+    color_model.eval()
 
     # Define the data preprocessing transformation
     mean, std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
@@ -265,7 +274,7 @@ def predict_image():
     ])
 
     # Specify the path to the new image for inference
-    new_image_path = os.path.join(root, "input", "women-cargo-pants.jpg")
+    new_image_path = os.path.join(root, "input", "ryan-hoffman-6Nub980bI3I-unsplash.jpg")
 
     # Load and preprocess the new image
     new_image = Image.open(new_image_path).convert("RGB")
@@ -274,27 +283,36 @@ def predict_image():
     # Perform inference
     with torch.no_grad():
         # Forward pass
-        predictions = model(input_data)
+        cat_predictions = cat_model(input_data)
+
+    # Perform inference
+    with torch.no_grad():
+        # Forward pass
+        color_predictions = color_model(input_data)
 
     # Post-process the predictions as needed
     # Here, we assume that the model outputs class probabilities
-    probs = torch.nn.functional.softmax(predictions, dim=1)
+    cat_probs = torch.nn.functional.softmax(cat_predictions, dim=1)
+    color_probs = torch.nn.functional.softmax(color_predictions, dim=1)
 
     # Get the predicted class index
-    predicted_class_index = torch.argmax(probs, dim=1).item()
+    predicted_cat_class_index = torch.argmax(cat_probs, dim=1).item()
+    predicted_color_class_index = torch.argmax(color_probs, dim=1).item()
 
     # Map the class index to the original class name
-    predicted_class_name = list(classes.keys())[predicted_class_index]
+    predicted_cat_class_name = list(sub_cat_classes.keys())[predicted_cat_class_index]
+    predicted_color_class_name = list(sub_color_classes.keys())[predicted_color_class_index]
 
-    print(f"Predicted Class: {predicted_class_name}")
+    print(f"Predicted Category Class: {predicted_cat_class_name}")
+    print(f"Predicted Color Class: {predicted_color_class_name}")
 
     # Visualize the input image
     plt.imshow(np.array(new_image))
-    plt.title(f"Predicted Class: {predicted_class_name}")
+    plt.title(f"Predicted Cat Class: {predicted_cat_class_name}/n Predicted Color Class: {predicted_color_class_name}")
     plt.axis('off')
     plt.show()
 
 
 if __name__ == "__main__":
-    main()
-    # predict_image()
+    # main()
+    predict_image()
