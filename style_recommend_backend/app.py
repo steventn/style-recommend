@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 from src.interface import get_recommendations
+from src.color_handler import get_color_recommendations
 
 app = Flask(__name__)
 CORS(app)
@@ -40,11 +41,13 @@ def upload_file():
 def get_recommendation():
     image = request.files['file']
     recommendation = get_recommendations(image)
+    color_recommendations = get_color_recommendations(recommendation['predicted_color'])
+    print(color_recommendations)
     response = {
         'category': recommendation['predicted_category'],
-        'color': recommendation['predicted_color']
+        'color': color_recommendations
     }
-    print(response)
+    print(jsonify(response))
     return jsonify(response)
 
 
