@@ -2,7 +2,6 @@ import cv2
 import numpy as np
 import random
 import matplotlib.colors as colors
-import webcolors
 
 
 def generate_complementary_color(base_color):
