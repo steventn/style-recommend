@@ -1,0 +1,21 @@
+.imageUpload {
+    margin-top: 20px;
+    text-align: center;
+  }
+  
+  .imageUpload input[type="file"] {
+    display: none;
+  }
+  
+  .imageUpload label {
+    background-color: #007bff;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  
+  .imageUpload label:hover {
+    background-color: #0056b3;
+  }
+  
