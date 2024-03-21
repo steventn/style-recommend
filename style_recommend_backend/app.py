@@ -1,8 +1,6 @@
 import os
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-
 from src.interface import get_recommendations
 from src.color_handler import get_color_recommendations
 
