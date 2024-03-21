@@ -1,9 +1,8 @@
 import timm
 import torch
-from tqdm import tqdm
 import torchmetrics
 import os
-
+from tqdm import tqdm
 from src.model_handler import ModelHandler
 
 

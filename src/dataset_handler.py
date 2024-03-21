@@ -11,7 +11,6 @@ class DatasetHandler:
     def create_data_loaders(root, label_name, transformations, batch_size, split_ratio=[0.9, 0.05, 0.05], num_workers=4):
         dataset = CustomDataset(root=root, label_name=label_name, transformations=transformations)
 
-        # Calculate dataset lengths for train, validation, and test sets
         total_len = len(dataset)
         train_length = int(total_len * split_ratio[0])
         val_length = int(total_len * split_ratio[1])
@@ -50,7 +49,6 @@ class DatasetHandler:
 
         for idx, index in enumerate(indices):
             image, ground_truth = data[index]
-            # Start plot
             plt.subplot(rows, num_images // rows, idx + 1)
 
             if color_map:
