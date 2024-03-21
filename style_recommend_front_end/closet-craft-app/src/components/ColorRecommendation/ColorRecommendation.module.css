@@ -1,0 +1,48 @@
+.container {
+    margin: 20px;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .suggestionHeading {
+    font-size: 24px;
+    margin-bottom: 0px;
+  }
+
+  .categoryHeading {
+    font-size: 22px;
+    margin-top: 5px;
+    margin-bottom: 10px;
+  }
+  
+  .colorList {
+    margin-top: 0px;
+    list-style-type: none;
+    padding: 0;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  
+  .colorCategory {
+    margin-bottom: 20px;
+  }
+  
+  .colorItem {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  .colorBox {
+    width: 50px;
+    height: 50px;
+    border-radius: 4px;
+    margin-right: 10px;
+  }
+  
+  .colorText {
+    margin: 0;
+  }
+  

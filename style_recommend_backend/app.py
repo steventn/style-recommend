@@ -35,6 +35,7 @@ def get_recommendation():
         'primary_color': recommendation['predicted_color'],
         'color': color_recommendations
     }
+    print(response)
     return jsonify(response)
 
 

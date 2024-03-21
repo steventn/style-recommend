@@ -1,8 +1,3 @@
-import json
-
-import cv2
-import numpy as np
-import random
 import matplotlib.colors as colors
 import requests
 
@@ -53,8 +48,3 @@ def get_color_recommendations(color_name):
     analogous_colors = get_color_scheme_analogous(color_name)
     color_dict["analogous_colors"] = analogous_colors
     return color_dict
-
-
-if __name__ == "__main__":
-    get_color_recommendations("Brown")
-
